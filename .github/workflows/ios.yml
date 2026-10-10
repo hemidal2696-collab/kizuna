@@ -24,6 +24,9 @@ concurrency:
   group: ios-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: write   # publish the "latest" release + AltStore source on main
+
 jobs:
   build:
     name: Build Kizuna.ipa
@@ -133,6 +136,76 @@ jobs:
           name: Kizuna-unsigned-ipa
           path: ios/build/Kizuna-unsigned.ipa
           if-no-files-found: error
+
+      # Public download for the phone (artifacts need a GitHub login) and an AltStore
+      # Classic source: add https://raw.githubusercontent.com/<owner>/<repo>/main/altstore/source.json
+      # once in AltStore > Sources, then install/update Kizuna from AltStore itself.
+      - name: Publish latest release + AltStore source
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          cp build/Kizuna-unsigned.ipa build/Kizuna.ipa
+          repo="${GITHUB_REPOSITORY}"
+          if gh release view latest --repo "$repo" >/dev/null 2>&1; then
+            gh release upload latest build/Kizuna.ipa --repo "$repo" --clobber
+            gh release edit latest --repo "$repo" --title "Kizuna (build ${GITHUB_RUN_NUMBER})" --prerelease
+          else
+            gh release create latest build/Kizuna.ipa --repo "$repo" --prerelease               --title "Kizuna (build ${GITHUB_RUN_NUMBER})"               --notes "IPA nesemnat pentru AltStore / SideStore / Sideloadly. Se actualizează la fiecare build."
+          fi
+          size=$(stat -f%z build/Kizuna.ipa)
+          version=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' Kizuna/Info.plist 2>/dev/null || echo 1.0.0)
+          case "$version" in *'$('*) version=1.0.0 ;; esac
+          mkdir -p ../altstore
+          python3 - "$repo" "$version" "$GITHUB_RUN_NUMBER" "$size" <<'PY'
+          import json, sys, datetime
+          repo, version, build, size = sys.argv[1], sys.argv[2], sys.argv[3], int(sys.argv[4])
+          raw = f"https://raw.githubusercontent.com/{repo}/main"
+          source = {
+              "name": "Kizuna",
+              "identifier": "ro.kizuna.source",
+              "subtitle": "PS5 Remote Play pentru iPhone și iPad",
+              "website": f"https://github.com/{repo}",
+              "iconURL": f"{raw}/ios/Kizuna/Assets.xcassets/AppIcon.appiconset/icon_1024.png",
+              "apps": [{
+                  "name": "Kizuna",
+                  "bundleIdentifier": "ro.kizuna.remoteplay",
+                  "developerName": "Kizuna",
+                  "subtitle": "PS5 / PS4 Remote Play",
+                  "localizedDescription": "Client PS5 și PS4 Remote Play bazat pe chiaki-ng, cu interfață Liquid Glass. Licență AGPL-3.0.",
+                  "iconURL": f"{raw}/ios/Kizuna/Assets.xcassets/AppIcon.appiconset/icon_1024.png",
+                  "tintColor": "0070D1",
+                  "category": "games",
+                  "versions": [{
+                      "version": version,
+                      "buildVersion": build,
+                      "date": datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                      "localizedDescription": f"Build {build}",
+                      "downloadURL": f"https://github.com/{repo}/releases/download/latest/Kizuna.ipa",
+                      "size": size,
+                      "minOSVersion": "17.0",
+                  }],
+                  "appPermissions": {
+                      "entitlements": [],
+                      "privacy": {
+                          "NSLocalNetworkUsageDescription": "Găsește și conectează consola PlayStation din rețeaua locală.",
+                      },
+                  },
+              }],
+              "news": [],
+          }
+          json.dump(source, open("../altstore/source.json", "w", encoding="utf-8"), ensure_ascii=False, indent=2)
+          PY
+          cd ..
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add altstore/source.json
+          if ! git diff --cached --quiet; then
+            git commit -m "AltStore source: build ${GITHUB_RUN_NUMBER} [skip ci]"
+            git pull --rebase --autostash origin main || true
+            git push origin HEAD:main
+          fi
 
       - name: Report errors
         if: always()
