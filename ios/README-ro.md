@@ -147,6 +147,10 @@ dispozitivul* afișează PIN-ul de 8 cifre; ai nevoie și de ID-ul contului PSN 
 
 ---
 
+## Jurnal de diagnostic
+
+**Setări › Jurnal de diagnostic.** Pentru fiecare stream se salvează local (Application Support/diagnostics, ultimele 20 de sesiuni) un fișier JSON Lines cu date tehnice, o dată pe secundă: bitrate, pierderi, cadre pe secundă, timp de procesare, RTT, întreruperi audio, tip de rețea, stare termică. Fără cont PSN, token-uri, nume de console sau adrese IP. **Exportă** trimite toate sesiunile într-un singur fișier prin meniul de partajare. Formatul e identic cu cel din versiunea Switch.
+
 ## 5. Limitări
 
 - **Netestat pe dispozitiv**: codul a fost scris și verificat static (shim-ul C este
