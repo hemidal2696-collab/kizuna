@@ -28,6 +28,7 @@ struct SettingsView: View {
                         accountCard
                         streamLinkCard
                         languageCard
+                        diagnosticsCard
                         aboutCard
                     }
                     .padding(20)
@@ -48,6 +49,10 @@ struct SettingsView: View {
                 }
             }
         }
+    }
+
+    private var diagnosticsCard: some View {
+        DiagnosticsCard()
     }
 
     private var accountCard: some View {
@@ -194,6 +199,49 @@ struct LogView: View {
                     Image(systemName: "arrow.clockwise")
                 }
             }
+        }
+    }
+}
+
+/// Settings card for the diagnostics log: on/off, export through the share sheet, delete.
+private struct DiagnosticsCard: View {
+    @State private var enabled = DiagnosticsLog.shared.enabled
+    @State private var sessions = DiagnosticsLog.shared.sessionFiles().count
+    @State private var exportURL: URL?
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            KZSectionHeader(title: L("diag.title"), systemImage: "waveform.path.ecg")
+            Toggle(L("diag.enabled"), isOn: $enabled)
+                .onChange(of: enabled) { _, value in DiagnosticsLog.shared.enabled = value }
+            Text(L("diag.privacy"))
+                .font(.footnote)
+                .foregroundStyle(KZColor.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+            Text(L("diag.count", sessions))
+                .font(.footnote.weight(.semibold))
+            HStack(spacing: 12) {
+                if let exportURL {
+                    ShareLink(item: exportURL) {
+                        KZButtonLabel(title: L("diag.export"), systemImage: "square.and.arrow.up")
+                    }
+                    .kzProminentButton()
+                }
+                Button(role: .destructive) {
+                    DiagnosticsLog.shared.clearAll()
+                    sessions = 0
+                    exportURL = nil
+                } label: {
+                    KZButtonLabel(title: L("diag.clear"), systemImage: "trash")
+                }
+                .kzGlassButton()
+                .disabled(sessions == 0)
+            }
+        }
+        .kzCard()
+        .onAppear {
+            sessions = DiagnosticsLog.shared.sessionFiles().count
+            exportURL = sessions > 0 ? DiagnosticsLog.shared.exportFile() : nil
         }
     }
 }

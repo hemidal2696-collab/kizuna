@@ -222,6 +222,7 @@ final class StreamSession: ObservableObject, Identifiable {
     private var started = false
     private var tornDown = false
     private var userStopped = false
+    private var diagnosticsStart = CFAbsoluteTimeGetCurrent()
 
     init(console: ConsoleRecord, viaPSN: Bool, settings: StreamSettings) {
         self.console = console
@@ -295,6 +296,10 @@ final class StreamSession: ObservableObject, Identifiable {
             phase = .ended(message: KizunaCoreBridge.errorString(err), isError: true)
             return
         }
+        diagnosticsStart = CFAbsoluteTimeGetCurrent()
+        DiagnosticsLog.shared.begin(isPS5: console.isPS5, viaPSN: viaPSN, resolution: settings.resolution,
+                                    fps: settings.fps, bitrateKbps: Int(settings.bitrateMbps * 1000),
+                                    hevc: settings.hevc && console.isPS5)
         statsTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
             MainActor.assumeIsolated {
                 self?.refreshStats()
@@ -315,6 +320,10 @@ final class StreamSession: ObservableObject, Identifiable {
         tornDown = true
         statsTimer?.invalidate()
         statsTimer = nil
+        if let summary = DiagnosticsLog.shared.end() {
+            LogStore.shared.info(String(format: "session %.0f min, smoothness %d%%, %llu lost frames, %llu audio underruns",
+                                        summary.minutes, summary.score, summary.framesLost, summary.audioUnderruns))
+        }
         input.stop()
         UIApplication.shared.isIdleTimerDisabled = false
         let core = self.core
@@ -363,6 +372,7 @@ final class StreamSession: ObservableObject, Identifiable {
             let isError = !userStopped && kz_quit_reason_is_error(code)
             let text = message ?? KizunaCoreBridge.errorString(code)
             LogStore.shared.info("stream quit (\(code)): \(text)")
+            DiagnosticsLog.shared.quit(code: code, text: text)
             if case .ended = phase { return }
             phase = .ended(message: isError ? text : L("stream.ended"), isError: isError)
             input.feedback.stop()
@@ -424,5 +434,12 @@ final class StreamSession: ObservableObject, Identifiable {
         s.audioBufferedMs = audioStats.buffered_ms
         s.audioUnderruns = audioStats.underruns
         stats = s
+
+        DiagnosticsLog.shared.sample(
+            seconds: Int(now - diagnosticsStart), mbps: native.measured_bitrate_mbps, loss: native.packet_loss,
+            fps: s.fps, processingMs: videoStats.averageProcessingMs, rttMs: native.rtt_ms,
+            framesLost: native.frames_lost, framesRecovered: native.frames_recovered,
+            videoDropped: videoStats.framesDropped, rendererFailures: videoStats.rendererFailures,
+            audioBufferedMs: audioStats.buffered_ms, audioUnderruns: audioStats.underruns)
     }
 }

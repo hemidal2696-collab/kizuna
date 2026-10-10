@@ -149,6 +149,12 @@ enum L10n {
 
         // Settings / about
         "settings.title": e("Setări", "Settings"),
+        "diag.title": e("Jurnal de diagnostic", "Diagnostics log"),
+        "diag.enabled": e("Înregistrează datele stream-ului", "Record stream data"),
+        "diag.privacy": e("Doar date tehnice (bitrate, pierderi, cadre, timp de decodare, audio). Fără cont PSN, token-uri, nume de console sau adrese IP. Rămâne pe dispozitiv până îl exporți.", "Technical data only (bitrate, losses, frames, decode time, audio). No PSN account, tokens, console names or IP addresses. Stays on this device until you export it."),
+        "diag.count": e("Sesiuni salvate: %ld", "Saved sessions: %ld"),
+        "diag.export": e("Exportă", "Export"),
+        "diag.clear": e("Șterge", "Delete"),
         "settings.account": e("Cont", "Account"),
         "settings.language": e("Limbă", "Language"),
         "settings.about": e("Despre", "About"),
