@@ -396,8 +396,10 @@ struct AddConsoleView: View {
             Button {
                 let address = manualIP.trimmingCharacters(in: .whitespacesAndNewlines)
                 let known = model.discovered.values.first(where: { $0.address == address })
-                let target = known.map { $0.target > 0 ? $0.target : (manualPS5 ? KZ_TARGET_PS5_1 : KZ_TARGET_PS4_10) }
-                    ?? (manualPS5 ? KZ_TARGET_PS5_1 : KZ_TARGET_PS4_10)
+                var target: Int32 = manualPS5 ? Int32(KZ_TARGET_PS5_1) : Int32(KZ_TARGET_PS4_10)
+                if let known, known.target > 0 {
+                    target = known.target
+                }
                 pairWithPIN(address: address, isPS5: known?.isPS5 ?? manualPS5, target: target,
                             name: known?.name ?? "", pin: manualPIN)
             } label: {

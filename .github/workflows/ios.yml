@@ -3,6 +3,10 @@
 #
 # Result: artifact "Kizuna-unsigned-ipa" (Kizuna-unsigned.ipa). Sign/sideload
 # it with SideStore, AltStore or Sideloadly (see ios/README-ro.md).
+#
+# Diagnostics: every compiler/CMake error is also published as a check-run
+# annotation and in the job summary, so a failed build can be analysed
+# without downloading the logs.
 
 name: iOS (IPA nesemnat)
 
@@ -71,16 +75,24 @@ jobs:
             ios/Vendor/VERSION
           key: kizuna-core-${{ runner.os }}-xcode26-${{ hashFiles('ios/Core/**', 'ios/scripts/build-core.sh', 'ios/scripts/patch_chiaki.py') }}
 
+      # Keeps going on failure so the Swift sources are still compiled (and their
+      # errors reported) in the same run; the app link then fails without the core.
       - name: Build native core (chiaki-ng + shim)
+        id: core
         if: steps.core-cache.outputs.cache-hit != 'true'
-        run: bash ./scripts/build-core.sh
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          mkdir -p build
+          bash ./scripts/build-core.sh 2>&1 | tee build/build-core.log
 
       - name: Generate Xcode project
         run: xcodegen generate
 
       - name: Build app (unsigned)
+        id: app
         run: |
-          set -euo pipefail
+          set -o pipefail
           mkdir -p build
           xcodebuild \
             -project Kizuna.xcodeproj \
@@ -92,8 +104,18 @@ jobs:
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_IDENTITY="" \
-            build | tee build/xcodebuild.log | grep -E '(error|warning: .*Kizuna|BUILD (SUCCEEDED|FAILED))' || true
-          test -d build/DerivedData/Build/Products/Release-iphoneos/Kizuna.app
+            build > build/xcodebuild.log 2>&1 || true
+          grep -E '(: error:|BUILD (SUCCEEDED|FAILED))' build/xcodebuild.log | head -n 200 || true
+          app=build/DerivedData/Build/Products/Release-iphoneos/Kizuna.app
+          # The .app folder exists even when compilation fails (assets are
+          # processed first), so require the linked executable itself.
+          if ! grep -q '\*\* BUILD SUCCEEDED \*\*' build/xcodebuild.log || [ ! -x "$app/Kizuna" ]; then
+            echo "::error title=Kizuna app::xcodebuild did not produce the Kizuna executable (see Report errors)"
+            exit 1
+          fi
+          size=$(du -k "$app/Kizuna" | cut -f1)
+          archs=$(lipo -archs "$app/Kizuna")
+          echo "::notice title=Kizuna binary::Kizuna executable ${size} KB (${archs}); takion strings: $(strings -a "$app/Kizuna" 2>/dev/null | grep -ci takion || true)"
 
       - name: Package IPA
         run: |
@@ -103,6 +125,7 @@ jobs:
           cp -R build/DerivedData/Build/Products/Release-iphoneos/Kizuna.app build/ipa/Payload/
           (cd build/ipa && zip -qry ../Kizuna-unsigned.ipa Payload)
           ls -lh build/Kizuna-unsigned.ipa
+          echo "::notice title=Kizuna IPA::Kizuna-unsigned.ipa $(du -k build/Kizuna-unsigned.ipa | cut -f1) KB"
 
       - name: Upload IPA
         uses: actions/upload-artifact@v4
@@ -111,10 +134,75 @@ jobs:
           path: ios/build/Kizuna-unsigned.ipa
           if-no-files-found: error
 
-      - name: Upload build log
+      - name: Report errors
+        if: always()
+        run: |
+          python3 - <<'PY'
+          import os, re
+
+          def grab(path, patterns, context_after=0):
+              if not os.path.exists(path):
+                  return []
+              lines = open(path, encoding="utf-8", errors="replace").read().splitlines()
+              out, seen = [], set()
+              for i, line in enumerate(lines):
+                  if any(re.search(p, line) for p in patterns):
+                      block = [line] + lines[i + 1:i + 1 + context_after]
+                      key = line.strip()
+                      if key in seen:
+                          continue
+                      seen.add(key)
+                      out.extend(l.rstrip() for l in block)
+              return out
+
+          core = grab("build/build-core.log",
+                      [r"CMake Error", r"\berror:", r"FAILED:", r"fatal error", r"Undefined symbols",
+                       r"No such file", r"command not found", r"^ERROR", r"Traceback"],
+                      context_after=4)
+          app = grab("build/xcodebuild.log",
+                     [r": error:", r"^ld: ", r"Undefined symbol", r"error: ", r"\*\* BUILD FAILED \*\*",
+                      r"The following build commands failed"],
+                     context_after=1)
+
+          def strip_paths(s):
+              return re.sub(r"/Users/runner/work/[^/]+/[^/]+/", "", s)
+
+          sections = [("native core", core), ("app", app)]
+          summary = os.environ.get("GITHUB_STEP_SUMMARY")
+          with open(summary, "a", encoding="utf-8") as fh:
+              for name, items in sections:
+                  fh.write(f"### Errors: {name} ({len(items)} lines)\n\n```\n")
+                  fh.write("\n".join(strip_paths(x) for x in items[:600]) or "(none)")
+                  fh.write("\n```\n\n")
+
+          # Annotations are public through the checks API (max 10 errors per step).
+          budget = 10
+          for name, items in sections:
+              text = [strip_paths(x)[:400] for x in items]
+              chunk, size = [], 0
+              chunks = []
+              for line in text:
+                  if size + len(line) > 3500 and chunk:
+                      chunks.append(chunk)
+                      chunk, size = [], 0
+                  chunk.append(line)
+                  size += len(line) + 1
+              if chunk:
+                  chunks.append(chunk)
+              for n, c in enumerate(chunks, 1):
+                  if budget == 0:
+                      break
+                  msg = "\n".join(c).replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A")
+                  print(f"::error title=Kizuna {name} {n}/{len(chunks)}::{msg}")
+                  budget -= 1
+          PY
+
+      - name: Upload build logs
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: Kizuna-build-log
-          path: ios/build/xcodebuild.log
+          name: Kizuna-build-logs
+          path: |
+            ios/build/xcodebuild.log
+            ios/build/build-core.log
           if-no-files-found: ignore

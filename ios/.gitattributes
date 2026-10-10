@@ -1,0 +1,8 @@
+# Keep shell/python/yaml with LF endings even when committed from Windows.
+*.sh text eol=lf
+*.py text eol=lf
+*.yml text eol=lf
+*.c text eol=lf
+*.h text eol=lf
+*.swift text eol=lf
+*.png binary
