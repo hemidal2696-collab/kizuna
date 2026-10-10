@@ -1,12 +1,12 @@
-// Kizuna for iOS/iPadOS - tiny localization table (Romanian default, English)
+// Kizuna for iOS/iPadOS - tiny localization table (English default, Romanian)
 // SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (C) 2026 Kizuna contributors
 
 import Foundation
 
 enum AppLanguage: String, CaseIterable, Codable, Identifiable {
-    case ro
     case en
+    case ro
 
     var id: String { rawValue }
     var displayName: String { self == .ro ? "Română" : "English" }
@@ -14,7 +14,7 @@ enum AppLanguage: String, CaseIterable, Codable, Identifiable {
     static let defaultsKey = "kizuna.language"
 
     static var current: AppLanguage {
-        AppLanguage(rawValue: UserDefaults.standard.string(forKey: defaultsKey) ?? "ro") ?? .ro
+        AppLanguage(rawValue: UserDefaults.standard.string(forKey: defaultsKey) ?? "en") ?? .en
     }
 }
 
