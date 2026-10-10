@@ -1,0 +1,120 @@
+# Kizuna for iOS/iPadOS - builds an unsigned IPA on a macOS runner.
+# SPDX-License-Identifier: AGPL-3.0-only
+#
+# Result: artifact "Kizuna-unsigned-ipa" (Kizuna-unsigned.ipa). Sign/sideload
+# it with SideStore, AltStore or Sideloadly (see ios/README-ro.md).
+
+name: iOS (IPA nesemnat)
+
+on:
+  push:
+    paths:
+      - "ios/**"
+      - ".github/workflows/ios.yml"
+  pull_request:
+    paths:
+      - "ios/**"
+  workflow_dispatch:
+
+concurrency:
+  group: ios-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build Kizuna.ipa
+    runs-on: macos-26
+    timeout-minutes: 75
+    defaults:
+      run:
+        shell: bash
+        working-directory: ios
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Select Xcode 26.6
+        run: |
+          set -euo pipefail
+          if [ -d /Applications/Xcode_26.6.app ]; then
+            sudo xcode-select -s /Applications/Xcode_26.6.app/Contents/Developer
+          else
+            echo "::warning::Xcode 26.6 not found on this image, using the newest Xcode 26.x"
+            ls -d /Applications/Xcode_26*.app
+            newest="$(ls -d /Applications/Xcode_26*.app | sort -V | tail -n1)"
+            sudo xcode-select -s "$newest/Contents/Developer"
+          fi
+          xcodebuild -version
+          xcrun --sdk iphoneos --show-sdk-version
+
+      - name: Set up Python (nanopb generator)
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install tools
+        run: |
+          brew install xcodegen protobuf ninja || brew upgrade xcodegen protobuf ninja || true
+          command -v cmake >/dev/null || brew install cmake
+          cmake --version | head -n1
+          protoc --version
+          xcodegen --version
+
+      - name: Cache native core
+        id: core-cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ios/Vendor/lib
+            ios/Vendor/include
+            ios/Vendor/VERSION
+          key: kizuna-core-${{ runner.os }}-xcode26-${{ hashFiles('ios/Core/**', 'ios/scripts/build-core.sh', 'ios/scripts/patch_chiaki.py') }}
+
+      - name: Build native core (chiaki-ng + shim)
+        if: steps.core-cache.outputs.cache-hit != 'true'
+        run: bash ./scripts/build-core.sh
+
+      - name: Generate Xcode project
+        run: xcodegen generate
+
+      - name: Build app (unsigned)
+        run: |
+          set -euo pipefail
+          mkdir -p build
+          xcodebuild \
+            -project Kizuna.xcodeproj \
+            -scheme Kizuna \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath build/DerivedData \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            build | tee build/xcodebuild.log | grep -E '(error|warning: .*Kizuna|BUILD (SUCCEEDED|FAILED))' || true
+          test -d build/DerivedData/Build/Products/Release-iphoneos/Kizuna.app
+
+      - name: Package IPA
+        run: |
+          set -euo pipefail
+          rm -rf build/ipa
+          mkdir -p build/ipa/Payload
+          cp -R build/DerivedData/Build/Products/Release-iphoneos/Kizuna.app build/ipa/Payload/
+          (cd build/ipa && zip -qry ../Kizuna-unsigned.ipa Payload)
+          ls -lh build/Kizuna-unsigned.ipa
+
+      - name: Upload IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: Kizuna-unsigned-ipa
+          path: ios/build/Kizuna-unsigned.ipa
+          if-no-files-found: error
+
+      - name: Upload build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Kizuna-build-log
+          path: ios/build/xcodebuild.log
+          if-no-files-found: ignore
