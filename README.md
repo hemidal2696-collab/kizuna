@@ -16,6 +16,12 @@ Actualizări: **Settings › Updates** în aplicație (de la 1.0.1). Ghidul comp
 Sursa: aplicația Switch este un fork al [Akira](https://github.com/chiaki-ng/akira) v0.6.5. Fiecare versiune are atașat
 `kizuna-switch-vs-akira-0.6.5.patch`, cu toate modificările (inclusiv cele din borealis).
 
+### Kizuna Nightly (test)
+
+Build-uri de test, publicate ca **pre-release** cu tag `vX.Y.Z-nightly.N` (fișier `kizuna-nightly.nro`).
+Se instalează separat, în `SD:/switch/kizuna-nightly/`, au iconiță violet „NIGHTLY” și actualizări proprii;
+versiunea stabilă nu le vede și nu e suprascrisă. Setările și consolele asociate sunt comune.
+
 ## iPhone și iPad (SideStore / AltStore)
 
 **Sursă** (instalare + actualizări automate): în SideStore sau AltStore Classic › Sources › **+**, adaugă
