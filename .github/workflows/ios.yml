@@ -107,6 +107,7 @@ jobs:
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_IDENTITY="" \
+            CURRENT_PROJECT_VERSION="${GITHUB_RUN_NUMBER}" \
             build > build/xcodebuild.log 2>&1 || true
           grep -E '(: error:|BUILD (SUCCEEDED|FAILED))' build/xcodebuild.log | head -n 200 || true
           app=build/DerivedData/Build/Products/Release-iphoneos/Kizuna.app
@@ -155,10 +156,14 @@ jobs:
             gh release create latest build/Kizuna.ipa --repo "$repo" --prerelease               --title "Kizuna (build ${GITHUB_RUN_NUMBER})"               --notes "IPA nesemnat pentru AltStore / SideStore / Sideloadly. Se actualizează la fiecare build."
           fi
           size=$(stat -f%z build/Kizuna.ipa)
-          version=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' Kizuna/Info.plist 2>/dev/null || echo 1.0.0)
-          case "$version" in *'$('*) version=1.0.0 ;; esac
+          # SideStore / AltStore refuse an install when the source's buildVersion differs from
+          # the IPA's CFBundleVersion, so both numbers come from the app that was built.
+          plist=build/ipa/Payload/Kizuna.app/Info.plist
+          version=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$plist")
+          build=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$plist")
+          echo "::notice title=Kizuna version::${version} (build ${build})"
           mkdir -p ../altstore
-          python3 - "$repo" "$version" "$GITHUB_RUN_NUMBER" "$size" <<'PY'
+          python3 - "$repo" "$version" "$build" "$size" <<'PY'
           import json, sys, datetime
           repo, version, build, size = sys.argv[1], sys.argv[2], sys.argv[3], int(sys.argv[4])
           raw = f"https://raw.githubusercontent.com/{repo}/main"
