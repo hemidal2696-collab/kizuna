@@ -28,6 +28,17 @@ enum KizunaCoreBridge {
         bootstrapResult
     }
 
+    /// Replaces chiaki's terse network errors on the PSN path ("Host is down": the console
+    /// never joined the PSN session; "No route to host": it could not be reached) with what
+    /// the user can actually check on the PS5.
+    static func friendlyPSNError(_ message: String) -> String {
+        let lower = message.lowercased()
+        if lower.contains("host is down") || lower.contains("no route to host") || lower.contains("unreach") {
+            return L("psn.console.noanswer")
+        }
+        return message
+    }
+
     static func errorString(_ code: Int32) -> String {
         guard let cString = kz_error_string(code) else { return "error \(code)" }
         return String(cString: cString)

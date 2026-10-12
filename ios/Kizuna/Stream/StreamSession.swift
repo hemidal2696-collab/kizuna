@@ -370,7 +370,7 @@ final class StreamSession: ObservableObject, Identifiable {
             }
         case KZ_EVENT_QUIT:
             let isError = !userStopped && kz_quit_reason_is_error(code)
-            let text = message ?? KizunaCoreBridge.errorString(code)
+            let text = KizunaCoreBridge.friendlyPSNError(message ?? KizunaCoreBridge.errorString(code))
             LogStore.shared.info("stream quit (\(code)): \(text)")
             DiagnosticsLog.shared.quit(code: code, text: text)
             if case .ended = phase { return }
@@ -409,6 +409,7 @@ final class StreamSession: ObservableObject, Identifiable {
         case KZ_STAGE_PSN_SESSION: return L("stream.stage.session")
         case KZ_STAGE_PSN_CONSOLE: return L("stream.stage.console")
         case KZ_STAGE_PSN_PUNCH: return L("stream.stage.punch")
+        case KZ_STAGE_PSN_WAKE: return L("add.progress.wake")
         case KZ_STAGE_STREAM: return L("stream.stage.stream")
         default: return L("stream.connecting", console)
         }

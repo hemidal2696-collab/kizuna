@@ -247,7 +247,7 @@ struct AddConsoleView: View {
                                                 isPS5: console.isPS5, duid: console.duid)
             showResult(L("add.success", record.displayName), success: true)
         case .failed(let message):
-            showResult(L("add.failed", message), success: false)
+            showResult(L("add.failed", KizunaCoreBridge.friendlyPSNError(message)), success: false)
         case .canceled:
             break
         }
@@ -272,6 +272,7 @@ struct AddConsoleView: View {
         case KZ_STAGE_PSN_SESSION: return L("add.progress.session")
         case KZ_STAGE_PSN_CONSOLE: return L("add.progress.console")
         case KZ_STAGE_PSN_PUNCH: return L("add.progress.punch")
+        case KZ_STAGE_PSN_WAKE: return L("add.progress.wake")
         default: return L("add.progress.regist")
         }
     }

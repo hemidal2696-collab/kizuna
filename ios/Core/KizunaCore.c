@@ -295,9 +295,13 @@ static ChiakiErrorCode kz_holepunch_connect(ChiakiLog *log, const char *token,
 
 		if(canceled)
 			return CHIAKI_ERR_CANCELED;
-		/* Akira only retries when the console could not be reached in time. */
-		if(err != CHIAKI_ERR_HOST_UNREACH || attempt == max_attempts)
+		/* Retry when the console could not be reached in time (HOST_UNREACH) or did not
+		 * join the PSN session in time (HOST_DOWN): a PS5 woken from rest mode by PSN
+		 * often needs longer than one session-start timeout. */
+		if((err != CHIAKI_ERR_HOST_UNREACH && err != CHIAKI_ERR_HOST_DOWN) || attempt == max_attempts)
 			return err;
+		if(stage)
+			stage(stage_ctx, KZ_STAGE_PSN_WAKE);
 
 		/* Back off attempt*2 s, waking up every 100 ms to honour cancellation. */
 		for(int i = 0; i < attempt * 20; i++)

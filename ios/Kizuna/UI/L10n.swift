@@ -106,6 +106,11 @@ enum L10n {
         "add.progress.console": e("Contactez consola prin PSN…", "Contacting the console through PSN…"),
         "add.progress.punch": e("Stabilesc conexiunea directă…", "Establishing a direct connection…"),
         "add.progress.regist": e("Asociez consola…", "Pairing the console…"),
+        "add.progress.wake": e("Consola nu a răspuns încă (poate se trezește din repaus), reîncerc…",
+                               "The console hasn't answered yet (it may be waking up), trying again…"),
+        "psn.console.noanswer": e(
+            "PS5-ul nu a răspuns prin PSN. Trebuie să fie pornit sau în modul repaus cu „Rămâi conectat la internet” și „Permite pornirea PS5 din rețea” activate (Setări › Sistem › Economisire energie › Funcții disponibile în modul repaus), iar Redarea la distanță activată (Setări › Sistem › Redare la distanță).",
+            "The PS5 didn't answer through PSN. It must be on, or in rest mode with “Stay Connected to the Internet” and “Enable Turning On PS5 from Network” turned on (Settings › System › Power Saving › Features Available in Rest Mode), and Remote Play must be enabled (Settings › System › Remote Play)."),
         "add.success": e("„%@” a fost asociată.", "“%@” is paired."),
         "add.failed": e("Asocierea a eșuat: %@", "Pairing failed: %@"),
         "add.invalid.pin": e("PIN-ul trebuie să aibă 8 cifre.", "The PIN must have 8 digits."),

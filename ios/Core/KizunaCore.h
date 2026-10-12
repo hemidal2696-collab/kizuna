@@ -103,6 +103,7 @@ extern "C" {
 #define KZ_STAGE_PSN_PUNCH       3   /* NAT hole punching (control socket)  */
 #define KZ_STAGE_REGIST          4   /* registration exchange               */
 #define KZ_STAGE_STREAM          5   /* session/stream start                */
+#define KZ_STAGE_PSN_WAKE        6   /* console did not answer yet (waking from rest), retrying */
 
 /* Session events delivered through KZEventCallback. */
 #define KZ_EVENT_CONNECTED           1
