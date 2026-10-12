@@ -33,8 +33,13 @@ enum KizunaCoreBridge {
     /// the user can actually check on the PS5.
     static func friendlyPSNError(_ message: String) -> String {
         let lower = message.lowercased()
-        if lower.contains("host is down") || lower.contains("no route to host") || lower.contains("unreach") {
+        // HOST_DOWN: the PS5 never joined the PSN session -> console state / rest-mode settings.
+        if lower.contains("host is down") {
             return L("psn.console.noanswer")
+        }
+        // HOST_UNREACH: it joined, but no direct path could be punched -> router / NAT.
+        if lower.contains("no route to host") || lower.contains("unreach") {
+            return L("psn.nat.failed")
         }
         return message
     }

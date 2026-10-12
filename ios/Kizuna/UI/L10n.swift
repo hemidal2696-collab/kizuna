@@ -108,6 +108,9 @@ enum L10n {
         "add.progress.regist": e("Asociez consola…", "Pairing the console…"),
         "add.progress.wake": e("Consola nu a răspuns încă (poate se trezește din repaus), reîncerc…",
                                "The console hasn't answered yet (it may be waking up), trying again…"),
+        "psn.nat.failed": e(
+            "PS5-ul a răspuns prin PSN, dar nu s-a putut face legătura directă (router/NAT). Pe routerul de acasă activează UPnP sau deschide spre PS5 porturile TCP 9295 și UDP 9296–9297. Dacă ești pe un Wi-Fi public, încearcă pe date mobile.",
+            "The PS5 answered through PSN, but no direct connection could be made (router/NAT). On your home router enable UPnP, or forward TCP 9295 and UDP 9296-9297 to the PS5. On public Wi-Fi, try mobile data instead."),
         "psn.console.noanswer": e(
             "PS5-ul nu a răspuns prin PSN. Trebuie să fie pornit sau în modul repaus cu „Rămâi conectat la internet” și „Permite pornirea PS5 din rețea” activate (Setări › Sistem › Economisire energie › Funcții disponibile în modul repaus), iar Redarea la distanță activată (Setări › Sistem › Redare la distanță).",
             "The PS5 didn't answer through PSN. It must be on, or in rest mode with “Stay Connected to the Internet” and “Enable Turning On PS5 from Network” turned on (Settings › System › Power Saving › Features Available in Rest Mode), and Remote Play must be enabled (Settings › System › Remote Play)."),
