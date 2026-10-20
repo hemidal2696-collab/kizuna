@@ -1174,7 +1174,9 @@ static void *kz_connect_thread(void *arg)
 	info.auto_regist = false;
 	info.rudp_sock = NULL;
 	info.packet_loss_max = s->video.packet_loss_max > 0.0 ? s->video.packet_loss_max : 0.05;
-	info.enable_idr_on_fec_failure = true;
+	/* Off, like chiaki-ng's own default since April 2026: a lost frame heals from the last
+	 * good reference instead of a whole key frame that briefly softens the picture. */
+	info.enable_idr_on_fec_failure = false;
 
 	ChiakiHolepunchSession hp = NULL;
 	if(s->psn)
