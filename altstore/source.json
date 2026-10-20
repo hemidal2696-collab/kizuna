@@ -17,11 +17,11 @@
       "versions": [
         {
           "version": "1.0.0",
-          "buildVersion": "14",
-          "date": "2026-10-12T07:21:58Z",
-          "localizedDescription": "Build 14",
+          "buildVersion": "15",
+          "date": "2026-10-20T09:30:31Z",
+          "localizedDescription": "Build 15",
           "downloadURL": "https://github.com/hemidal2696-collab/kizuna/releases/download/latest/Kizuna.ipa",
-          "size": 2535343,
+          "size": 2535335,
           "minOSVersion": "17.0"
         }
       ],
