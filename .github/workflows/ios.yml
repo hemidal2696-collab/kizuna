@@ -76,7 +76,7 @@ jobs:
             ios/Vendor/lib
             ios/Vendor/include
             ios/Vendor/VERSION
-          key: kizuna-core-${{ runner.os }}-xcode26-${{ hashFiles('ios/Core/**', 'ios/scripts/build-core.sh', 'ios/scripts/patch_chiaki.py') }}
+          key: kizuna-core-${{ runner.os }}-xcode26-${{ hashFiles('ios/Core/**', 'ios/scripts/build-core.sh', 'ios/scripts/patch_chiaki.py', 'ios/scripts/patches/**') }}
 
       # Keeps going on failure so the Swift sources are still compiled (and their
       # errors reported) in the same run; the app link then fails without the core.

@@ -15,8 +15,15 @@
 # 3. lib/src/remote/holepunch.c: on Apple platforms use the select() candidate
 #    loop that chiaki already uses on Android instead of libevent.
 #    FD_SETSIZE is 1024 on iOS, far above the sockets holepunch opens.
+# 4. patches/*.patch (git apply): fixes taken from later chiaki-ng commits.
+#    chiaki-feedback-history.patch = upstream 698e0ec, 4382c1c, bfbb296, c938844
+#    (Oct 2026): one controller event per feedback packet, event count in the
+#    header, the last 8 events repeated and the newest packet resent at +20, 50,
+#    100 and 200 ms, so a button release lost to packet loss no longer leaves
+#    the button held, and L2+R2 pressed together both register.
 
 import pathlib
+import subprocess
 import sys
 
 MARKER = ".kizuna-patched"
@@ -67,6 +74,10 @@ def main() -> None:
             "#elif defined(__ANDROID__)\n",
             "#elif defined(__ANDROID__) || defined(__APPLE__)\n",
             1)
+
+    for patch in sorted((pathlib.Path(__file__).resolve().parent / "patches").glob("*.patch")):
+        subprocess.run(["git", "-C", str(root), "apply", "--whitespace=nowarn", str(patch)], check=True)
+        print(f"patch_chiaki: applied {patch.name}")
 
     marker.write_text("patched by Kizuna ios/scripts/patch_chiaki.py\n", encoding="utf-8")
 
